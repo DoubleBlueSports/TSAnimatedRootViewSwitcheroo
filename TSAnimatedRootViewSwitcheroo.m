@@ -67,12 +67,41 @@ __strong static TSAnimatedRootViewSwitcheroo *sharedContainer;
     return UIStatusBarStyleLightContent;
 }
 
+- (BOOL)prefersStatusBarHidden {
+    return self.childViewControllers.count > 0 ? [self.childViewControllers[0] prefersStatusBarHidden] : false;
+}
+
 - (UIViewController *)childViewControllerForStatusBarStyle {
     return self.root;
 }
 
-- (UIViewController *)childViewControllerForStatusBarHidden {
-    return self.root;
+- (BOOL)shouldAutorotate {
+    UIViewController *firstChild = self.childViewControllers.firstObject;
+    if (firstChild) {
+        return [firstChild shouldAutorotate];
+    } else {
+        return [super shouldAutorotate];
+    }
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    UIViewController *firstChild = self.childViewControllers.firstObject;
+    if (firstChild) {
+        return [firstChild supportedInterfaceOrientations];
+    } else {
+        return [super supportedInterfaceOrientations];
+    }
+}
+
+
+
+- (UIInterfaceOrientation) preferredInterfaceOrientationForPresentation {
+    UIViewController *firstChild = self.childViewControllers.firstObject;
+    if (firstChild) {
+        return [firstChild preferredInterfaceOrientationForPresentation];
+    } else {
+        return [super preferredInterfaceOrientationForPresentation];
+    }
 }
 
 - (void)switchToRoot:(UIViewController *)root direction:(TSSwitcherooAnimationDirection)direction {
@@ -102,45 +131,44 @@ __strong static TSAnimatedRootViewSwitcheroo *sharedContainer;
     }
 
     SEL animSelector = @selector(switcheroo:animationControllerForDirection:fromViewController:toViewController:);
-  if ([self.delegate respondsToSelector:animSelector]) {
-    return [self.delegate switcheroo:self
-                animationControllerForDirection:direction
-                             fromViewController:self.root
-                               toViewController:viewController];
-  }
+    if ([self.delegate respondsToSelector:animSelector]) {
+        return [self.delegate switcheroo:self
+         animationControllerForDirection:direction
+                      fromViewController:self.root
+                        toViewController:viewController];
+    }
 
     return nil;
 }
 
 - (void)_switchToRoot:(UIViewController *)toViewController direction:(TSSwitcherooAnimationDirection)direction {
 
-  if (![self shouldSwitchToViewController:toViewController]) {
-    return;
-  }
+    if (![self shouldSwitchToViewController:toViewController]) {
+        return;
+    }
 
-  UIViewController *fromViewController = (toViewController == self.root) ? nil : self.root;
+    UIViewController *fromViewController = (toViewController == self.root) ? nil : self.root;
     id<UIViewControllerAnimatedTransitioning>animator = [self animatorToViewController:toViewController
                                                                              direction:direction];
 
-  UIView *toView = toViewController.view;
-  [toView setTranslatesAutoresizingMaskIntoConstraints:YES];
-  toView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-  toView.frame = self.view.bounds;
+    UIView *toView = toViewController.view;
+    [toView setTranslatesAutoresizingMaskIntoConstraints:YES];
+    toView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    toView.frame = self.view.bounds;
 
-  [fromViewController dismissViewControllerAnimated:YES completion:nil];
-  [fromViewController willMoveToParentViewController:nil];
-  [self addChildViewController:toViewController];
-  TSSwitcherooCompletionBlock completionBlock = ^(BOOL didComplete) {
-    [fromViewController.view removeFromSuperview];
-    [fromViewController removeFromParentViewController];
-    [toViewController didMoveToParentViewController:self];
+    [fromViewController willMoveToParentViewController:nil];
+    [self addChildViewController:toViewController];
+    TSSwitcherooCompletionBlock completionBlock = ^(BOOL didComplete) {
+        [fromViewController.view removeFromSuperview];
+        [fromViewController removeFromParentViewController];
+        [toViewController didMoveToParentViewController:self];
 
-    if ([animator respondsToSelector:@selector (animationEnded:)]) {
-      [animator animationEnded:didComplete];
-    }
-  };
+        if ([animator respondsToSelector:@selector (animationEnded:)]) {
+            [animator animationEnded:didComplete];
+        }
+    };
 
-  if (animator) {
+    if (animator) {
         TSSwitcherooContext *transitionContext = [[TSSwitcherooContext alloc] initWithFromViewController:fromViewController toViewController:toViewController];
         transitionContext.completionBlock = completionBlock;
         [animator animateTransition:transitionContext];
@@ -165,16 +193,16 @@ __strong static TSAnimatedRootViewSwitcheroo *sharedContainer;
 @implementation TSSwitcherooContext
 
 - (instancetype)initWithFromViewController:(UIViewController *)fromViewController toViewController:(UIViewController *)toViewController {
-  NSAssert ([fromViewController isViewLoaded] && fromViewController.view.superview, @"The fromViewController view must reside in the container view upon initializing the transition context.");
+    NSAssert ([fromViewController isViewLoaded] && fromViewController.view.superview, @"The fromViewController view must reside in the container view upon initializing the transition context.");
 
-  if ((self = [super init])) {
-    self.privateViewControllers = @{
-      UITransitionContextFromViewControllerKey: fromViewController,
-      UITransitionContextToViewControllerKey: toViewController,
-    };
-  }
+    if ((self = [super init])) {
+        self.privateViewControllers = @{
+                                        UITransitionContextFromViewControllerKey: fromViewController,
+                                        UITransitionContextToViewControllerKey: toViewController,
+                                        };
+    }
 
-  return self;
+    return self;
 }
 
 - (UIView *)containerView {
@@ -210,13 +238,13 @@ __strong static TSAnimatedRootViewSwitcheroo *sharedContainer;
 }
 
 - (UIViewController *)viewControllerForKey:(NSString *)key {
-  return self.privateViewControllers[key];
+    return self.privateViewControllers[key];
 }
 
 - (void)completeTransition:(BOOL)didComplete {
-  if (self.completionBlock) {
-    self.completionBlock(didComplete);
-  }
+    if (self.completionBlock) {
+        self.completionBlock(didComplete);
+    }
 }
 
 - (BOOL)transitionWasCancelled { return NO; }
