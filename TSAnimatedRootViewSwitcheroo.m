@@ -67,7 +67,7 @@ __strong static TSAnimatedRootViewSwitcheroo *sharedContainer;
     return UIStatusBarStyleLightContent;
 }
 
-(UIViewController *)childViewControllerForStatusBarHidden {
+- (UIViewController *)childViewControllerForStatusBarHidden {
     return self.childViewControllers.count > 0 ? [self.childViewControllers[0] childViewControllerForStatusBarHidden] : nil;
 }
 
